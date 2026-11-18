@@ -8,7 +8,7 @@ import {prepareForExport} from "./opensearch.js";
 import {exec} from "@actions/exec";
 import {restoreCache, saveCache} from "@actions/cache";
 import {DefaultArtifactClient} from "@actions/artifact";
-import {dumpDatabase} from "./database.js";
+import dumpDatabase from "./database.js";
 
 function getWorkspaceDir() {
     return path.resolve(process.cwd(), process.env.GITHUB_WORKSPACE || '.');
@@ -70,11 +70,19 @@ export async function run(): Promise<void> {
 
         const outputDir = localPath('output');
         await mkdirP(outputDir);
+
+        const cacheArtifact = getBooleanInput('cache-artifact', {
+            required: true,
+            trimWhitespace: true,
+        });
+
         const cacheKey = `cache-magento-build-${buildName}-${magentoOptions.repository}-${magentoOptions.metaPackage}`
 
-        if (!await restoreArtifactsFromCache(outputDir, cacheKey)) {
+        if (!cacheArtifact || !await restoreArtifactsFromCache(outputDir, cacheKey)) {
             await group('Building Magento', () => buildMagento(dockerOptions, magentoOptions, outputDir));
-            await group('Storing Cache', () => storeArtifactsInCache(outputDir, cacheKey));
+            if (cacheArtifact) {
+                await group('Storing Cache', () => storeArtifactsInCache(outputDir, cacheKey));
+            }
         }
 
         const artifactClient = new DefaultArtifactClient()

@@ -1,7 +1,19 @@
 name: Verify Action
 on:
   pull_request:
+    # Ignore release-please changed files as they are not relevant to the action
+    paths-ignore:
+      - .github/workflows/release.yml
+      - README.md
+      - CHANGELOG.md
+      - .release-please-manifest.json
   push:
+    # Ignore release-please changed files as they are not relevant to the action
+    paths-ignore:
+      - .github/workflows/release.yml
+      - README.md
+      - CHANGELOG.md
+      - .release-please-manifest.json
 
 permissions:
   contents: read
@@ -51,6 +63,7 @@ jobs:
           persist-credentials: false
       - uses: ./
         with:
+          cache-artifact: 'false'
           magento-version: ${{ matrix.magento-version }}
           php-version: ${{ matrix.php-version }}
           mariadb-version: ${{ matrix.mariadb-version }}
@@ -76,6 +89,7 @@ jobs:
           persist-credentials: false
       - uses: ./
         with:
+          cache-artifact: 'false'
           meta-package: 'mage-os/project-community-edition'
           repository: 'https://repo.mage-os.org/'
           magento-version: ${{ matrix.magento-version }}
