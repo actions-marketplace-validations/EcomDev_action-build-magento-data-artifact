@@ -16,6 +16,10 @@ export type DockerComposeConfig = {
     extraConfigFiles?: string[]
 }
 
+export interface DockerExecOptions extends ExecOptions {
+    user?: string
+}
+
 export function createConfig(
     mariaDbVersion: string,
     phpVersion: string,
@@ -71,8 +75,14 @@ export class DockerCompose {
         info(`Stopped Docker Compose in ${this.path} directory and cleaned up data`)
     }
 
-    async exec(container: string, command: string, args: string[], options?: ExecOptions) {
-        const result = await this.dockerComposeCommand('exec', [container, command, ...args], options)
+    async exec(container: string, command: string, args: string[], options?: DockerExecOptions) {
+        const userArgs = options?.user ? ['-u', options.user] : []
+
+        if (options) {
+            delete options.user
+        }
+
+        const result = await this.dockerComposeCommand('exec', [...userArgs, container, command, ...args], options)
 
         if (result > 0) {
             throw new Error(`Failed to execute command ${command} in container ${container}`)
@@ -157,11 +167,10 @@ export class DockerCompose {
                 MYSQL_USER: 'magento',
             },
             healthcheck: {
-                interval: '2s',
-                start_period: '2s',
-                start_interval: '2s',
-                timeout: '120s',
-                test: "mariadb -umagento -pmagento magento -e 'select 1'",
+                test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized'],
+                interval: '10s',
+                timeout: '5s',
+                retries: '5',
             },
             image: `ghcr.io/wardenenv/mariadb:${this.config.mariaDbVersion}`,
         }
